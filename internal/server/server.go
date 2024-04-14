@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"orca-peer/internal/hash"
-	ui "orca-peer/internal/ui"
 	"os"
 	"path/filepath"
 	"time"
@@ -60,32 +59,6 @@ type Transaction struct {
 	Timestamp string  `json:"timestamp"`
 	Uuid      string  `json:"uuid"`
 }
-type StatusResponse struct {
-	Status string `json:"status"`
-}
-
-func sendStatusResponse(w http.ResponseWriter, status string, statusCode int) {
-	responseData := StatusResponse{
-		Status: status,
-	}
-
-	// Marshal the ResponseData struct into JSON
-	jsonResponse, err := json.Marshal(responseData)
-	if err != nil {
-		http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
-		return
-	}
-
-	// Set the Content-Type header to application/json
-	w.Header().Set("Content-Type", "application/json")
-
-	// Write the JSON response with a 200 status code
-	w.WriteHeader(statusCode)
-	_, err = w.Write(jsonResponse)
-	if err != nil {
-		fmt.Println("Failed to write JSON response:", err)
-	}
-}
 
 func handleTransaction(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
@@ -115,7 +88,6 @@ func handleTransaction(w http.ResponseWriter, r *http.Request) {
 	err = os.WriteFile("./files/transactions/"+timestampStr, body, 0644)
 	if err != nil {
 		fmt.Println("Error writing transaction to file:", err)
-		sendStatusResponse(w, "", http.StatusInternalServerError)
 		return
 	}
 	fmt.Println("Data in struct:", data)
@@ -124,14 +96,11 @@ func handleTransaction(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Properly Hashed Transaction")
 	} else {
 		fmt.Println("Did not properly hash transaction")
-		sendStatusResponse(w, "Public Key does not unlock the locked transaction", http.StatusBadRequest)
-		return
 	}
 	var transaction Transaction
 	err = json.Unmarshal(data.UnlockedTransaction, &transaction)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON:", err)
-		sendStatusResponse(w, "Error Marshalling JSON", http.StatusBadRequest)
 		return
 	} else {
 		fmt.Println("Transaction JSON:")
@@ -139,7 +108,6 @@ func handleTransaction(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(transaction.Price)
 		fmt.Println("UUID:")
 		fmt.Println(transaction.Uuid)
-		sendStatusResponse(w, "Successfully stored transaction", http.StatusOK)
 	}
 	eventChannel <- true
 	fmt.Println("> ")
@@ -151,7 +119,6 @@ func StartServer(port string, serverReady chan bool, confirming *bool, confirmat
 	server := Server{
 		storage: hash.NewDataStore("files/stored/"),
 	}
-	ui.InitServer()
 	http.HandleFunc("/requestFile/", func(w http.ResponseWriter, r *http.Request) {
 		server.sendFile(w, r, confirming, confirmation)
 	})

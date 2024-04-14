@@ -17,7 +17,6 @@ import (
 
 func StartCLI(bootstrapAddress *string, pubKey *rsa.PublicKey, privKey *rsa.PrivateKey) {
 	fmt.Println("Loading...")
-	*bootstrapAddress = "local"
 	ctx, dht := orcaServer.CreateDHTConnection(bootstrapAddress)
 	fmt.Println("Welcome to Orcanet!")
 	fmt.Println("Dive In and Explore! Type 'help' for available commands.")
